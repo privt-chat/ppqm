@@ -34,9 +34,9 @@
     <email>jamieson@privt.com</email>
   </author>
   <author>
-    <firstname>Ron</firstname>
+    <firstname>Ron Lauren</firstname>
     <surname>Hombre</surname>
-    <email>ron@privt.com</email>
+    <email>ronlauren@privt.com</email>
   </author>
   <author>
     <firstname>Hiren</firstname>
@@ -48,7 +48,7 @@
     <date>2024-08-18</date>
     <initials>jor</initials>
     <remark>
-      <p>Initial version based on the OMEMO XEP with updates for post-quantum security using Crystals Kyber.</p>
+      <p>Initial version based on the OMEMO XEP with updates for post-quantum security using Module-Lattice-Based Key Encapsulation Mechanism (ML-KEM).</p>
     </remark>
   </revision>
 </header>
@@ -59,12 +59,12 @@
       The advancement of quantum computing poses a significant threat to classical encryption schemes currently in use. While protocols like Off-the-Record (OTR) messaging and OpenPGP have provided encryption in the past, they are not equipped to withstand the power of quantum computers. This necessitates a transition to post-quantum cryptographic algorithms.
     </p>
     <p>
-      PPQM (Privt. Post-Quantum Multi-End Message and Object Encryption) is designed to address these emerging threats by incorporating post-quantum secure algorithms such as Crystals Kyber. This ensures that communication remains secure even in the face of future quantum computing advancements.
+      PPQM (Privt. Post-Quantum Multi-End Message and Object Encryption) is designed to address these emerging threats by incorporating post-quantum secure algorithms such as ML-KEM(CRYSTALS-Kyber). This ensures that communication remains secure even in the face of future quantum computing advancements.
     </p>
   </section2>
   <section2 topic='Overview' anchor='intro-overview'>
     <p>
-      PPQM builds upon the strengths of the Signal protocol and the OMEMO protocol, but replaces the underlying cryptographic primitives with post-quantum secure algorithms. Specifically, PPQM utilizes Crystals Kyber for key encapsulation, ensuring that even if quantum computers become capable of breaking traditional encryption, PPQM-secured communications will remain confidential.
+      PPQM builds upon the strengths of the Signal protocol and the OMEMO protocol, but replaces the underlying cryptographic primitives with post-quantum secure algorithms. Specifically, PPQM utilizes ML-KEM for key encapsulation, ensuring that even if quantum computers become capable of breaking traditional encryption, PPQM-secured communications will remain confidential.
     </p>
     <p>
       Like OMEMO, PPQM supports multi-end encryption, allowing secure message synchronization across multiple devices. Each message is encrypted with a unique key, and headers containing the necessary decryption keys are individually encrypted for each recipient device. These headers and the encrypted payload are transmitted in a &lt;message&gt; stanza.
@@ -80,7 +80,7 @@
   <p>PPQM provides the following guarantees under the threat model described in the next section:</p>
   <ul>
     <li>Confidentiality: Only the sender and receiver can read the content of a message, secured by post-quantum cryptographic primitives.</li>
-    <li>Forward Secrecy: Compromised key material does not compromise previous message exchanges, ensured by the Crystals Kyber key encapsulation mechanism.</li>
+    <li>Forward Secrecy: Compromised key material does not compromise previous message exchanges, ensured by the ML-KEM key encapsulation mechanism.</li>
     <li>Break-in Recovery: A session compromised due to key material leakage will recover after a few communication rounds.</li>
     <li>Authentication: Each peer can authenticate the sender or receiver of a message, leveraging post-quantum signatures.</li>
     <li>Integrity: Each peer can ensure that a message has not been altered by any intermediate node.</li>
@@ -106,7 +106,7 @@
   <dl>
     <di><dt>Device</dt><dd>A communication endpoint, i.e., a specific client instance.</dd></di>
     <di><dt>PPQM element</dt><dd>An &lt;encrypted&gt; element in the <tt>&ns;</tt> namespace.</dd></di>
-    <di><dt>Bundle</dt><dd>A collection of publicly accessible data used by the post-quantum key agreement protocol, including the public IdentityKey, a signed KyberPreKey with its corresponding signature, and a list of (single-use) KyberPreKeys.</dd></di>
+    <di><dt>Bundle</dt><dd>A collection of publicly accessible data used by the post-quantum key agreement protocol, including the public IdentityKey, a list of single-use Curve25519 PreKeys, and a list of single-use KyberPreKeys with its corresponding signature.</dd></di>
     <di><dt>rid</dt><dd>The device id of the intended recipient of the containing &lt;key&gt;.</dd></di>
     <di><dt>sid</dt><dd>The device id of the sender of the containing PPQM element.</dd></di>
   </dl>
@@ -115,7 +115,7 @@
 <section1 topic='Protocol Definition' anchor='protocol'>
   <section2 topic='Overview' anchor='protocol-overview'>
     <p>
-      This protocol utilizes a post-quantum adaptation of the Double Ratchet encryption scheme alongside a Kyber-based key agreement protocol. The following sections provide the technical details necessary to build an implementation of the PPQM protocol.
+      This protocol utilizes a post-quantum adaptation of the Double Ratchet encryption scheme alongside a ML-KEM-based key agreement protocol. The following sections provide the technical details necessary to build an implementation of the PPQM protocol.
     </p>
   </section2>
   <section2 topic='Key Exchange' anchor='protocol-key_exchange'>
@@ -123,8 +123,8 @@
       The key exchange in PPQM is based on a modified version of the X3DH key agreement protocol, updated to incorporate post-quantum secure components:
     </p>
     <dl>
-      <di><dt>key encapsulation method</dt><dd>Crystals Kyber 1024</dd></di>
-      <di><dt>hash function</dt><dd>SHA-3</dd></di>
+      <di><dt>key encapsulation method</dt><dd>ML-KEM-1024</dd></di>
+      <di><dt>hash function</dt><dd>SHA-3 (KMAC256)</dd></di>
       <di><dt>info string</dt><dd>&quot;PPQM X3DH&quot;</dd></di>
       <di><dt>signed KyberPreKey rotation period</dt><dd>Signed KyberPreKeys SHOULD be rotated periodically, from once a week to once a month.</dd></di>
       <di><dt>time to retain old private keys</dt><dd>The private key of the old signed KyberPreKey SHOULD be retained for an additional rotation period to accommodate delayed messages.</dd></di>
@@ -132,7 +132,7 @@
       <di><dt>minimum number of KyberPreKeys</dt><dd>The bundle MUST contain at least 25 KyberPreKeys.</dd></di>
       <di><dt>usage of KyberPreKeys</dt><dd>All key exchanges MUST use a KyberPreKey; exchanges that do not use a KyberPreKey MUST be rejected.</dd></di>
       <di><dt>associated data</dt><dd>The associated data is created by concatenating the IdentityKeys of Alice and Bob: <tt>AD = Encode(IK_A) || Encode(IK_B)</tt>. <tt>Alice</tt> is the party that <em>actively initiated</em> the key exchange, while <tt>Bob</tt> is the party that <em>passively accepted</em> the key exchange.</dd></di>
-      <di><dt>Signature method</dt><dd>Post-quantum secure signatures using Crystals-Dilithium or similar.</dd></di>
+      <di><dt>Signature method</dt><dd>Post-quantum secure signatures using ML-DSA(CRYSTALS-Dilithium) or similar.</dd></di>
     </dl>
     <p>
       The key exchange is performed just-in-time when sending the first message to a device, ensuring that each key exchange message also contains encrypted content as produced by the post-quantum Double Ratchet encryption scheme described below.
@@ -151,12 +151,12 @@
       <di><dt>deletion policy for skipped message keys</dt><dd>PPQM follows the same guidelines as OMEMO, with skipped message keys being discarded on a FIFO basis when the limit is reached.</dd></di>
       <di><dt>authentication tag truncation</dt><dd>Authentication tags are truncated to 16 bytes/128 bits.</dd></di>
       <di><dt>CONCAT(ad, header)</dt><dd><tt>CONCAT(ad, header) = ad || PPQMMessage.proto(header)</tt></dd></di>
-      <di><dt>KDF_RK(rk, dh_out)</dt><dd>HKDF-SHA-3 using the root key (rk) as HKDF salt, the output of a Diffie-Hellman (dh_out) as HKDF input material, and &quot;PPQM Root Chain&quot; as HKDF info.</dd></di>
-      <di><dt>KDF_CK(ck)</dt><dd>HMAC-SHA-3 using a chain key (ck) as the HMAC key, with specified constants for message key and chain key derivation.</dd></di>
+      <di><dt>KDF_RK(rk, dh_out)</dt><dd>KMAC256 using the root key (rk) as HKDF salt, the output of a Diffie-Hellman (dh_out) as HKDF input material, and &quot;PPQM Root Chain&quot; as HKDF info.</dd></di>
+      <di><dt>KDF_CK(ck)</dt><dd>KMAC256 using a chain key (ck) as the HMAC key, with specified constants for message key and chain key derivation.</dd></di>
       <di><dt>ENCRYPT(mk, plaintext, associated_data)</dt><dd>
         The encryption step uses authenticated encryption consisting of AES-256-GCM.
         <ol>
-          <li>Use HKDF-SHA-3 to generate key material from the message key (mk).</li>
+          <li>Use KMAC256 to generate key material from the message key (mk).</li>
           <li>Encrypt the plaintext using AES-256-GCM with the derived key.</li>
           <li>Authenticate the ciphertext using associated data.</li>
         </ol>
@@ -172,11 +172,11 @@
   </section2>
   <section2 topic='Message Encryption' anchor='protocol-message_encryption'>
     <p>
-      The contents are encrypted and authenticated using a combination of AES-256-GCM with SHA-3 for key derivation.
+      The contents are encrypted and authenticated using a combination of AES-256-GCM with SHA-3(KMAC256) for key derivation.
     </p>
     <ol>
       <li>Generate 32 bytes of cryptographically secure random data, called <tt>key</tt>.</li>
-      <li>Use HKDF-SHA-3 to generate key material from the key.</li>
+      <li>Use KMAC256 to generate key material from the key.</li>
       <li>Encrypt the plaintext using AES-256-GCM with the derived key.</li>
       <li>Concatenate the key and authentication data, then encrypt them using the Double Ratchet.</li>
     </ol>
@@ -187,7 +187,7 @@
     </p>
     <ol>
       <li>Decrypt the key and authentication data from the PPQMKeyExchange or PPQMAuthenticatedMessage.</li>
-      <li>Use HKDF-SHA-3 to regenerate the encryption key.</li>
+      <li>Use KMAC256 to regenerate the encryption key.</li>
       <li>Verify the authentication data and decrypt the ciphertext using AES-256-GCM.</li>
     </ol>
   </section2>
@@ -207,11 +207,11 @@
     <p>A device must announce itself by adding its device id to the devices PEP node. The node’s access model must be set to ‘open’ for this purpose.</p>
     </section3>
     <section3 topic='Bundles' anchor='bundles'>
-    <p>A device must publish its IdentityKey, a signed KyberPreKey, and a list of KyberPreKeys in a bundle. This is stored in the <tt>&nsbundles;</tt> node, which must support multiple items.</p>
+    <p>A device must publish its IdentityKey, a Signed PreKey, a list of PreKeys, and a list of KyberPreKeys in a bundle. This is stored in the <tt>&nsbundles;</tt> node, which must support multiple items.</p>
     </section3>
   </section2>
   <section2 topic='Building a session' anchor='usecases-building'>
-    <p>To build a session with a device, fetch its bundle information and use a random KyberPreKey to establish a PPQM session.</p>
+    <p>To build a session with a device, fetch its bundle information and use a random PreKey and KyberPreKey to establish a PPQM session.</p>
   </section2>
   <section2 topic='Sending a message' anchor='usecases-messagesend'>
     <section3 topic='SCE Profile' anchor='sce'>
@@ -352,6 +352,7 @@
                 <xs:element ref='spks'/>
                 <xs:element ref='ik'/>
                 <xs:element ref='prekeys'/>
+                <xs:element ref='kemprekeys'/>
             </xs:all>
         </xs:complexType>
     </xs:element>
@@ -382,6 +383,24 @@
             <xs:simpleContent>
                 <xs:extension base='xs:base64Binary'>
                     <xs:attribute name='id' type='xs:unsignedInt' use='required'/>
+                </xs:extension>
+            </xs:simpleContent>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name='kemprekeys'>
+        <xs:complexType>
+            <xs:sequence minOccurs='25'>
+                <xs:element ref='kpk'/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name='kpk'>
+        <xs:complexType>
+            <xs:simpleContent>
+                <xs:extension base='xs:base64Binary'>
+                    <xs:attribute name='id' type='xs:unsignedInt' use='required'/>
+                    <xs:attribute name='sig' type='xs:base64Binary' use='required'/>
                 </xs:extension>
             </xs:simpleContent>
         </xs:complexType>
